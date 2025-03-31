@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: milvus-python-client
+  labels:
+    app: milvus-python-client
+spec:
+  restartPolicy: Always
+  securityContext:
+    runAsUser: 71032    # User ID for accessing NFS
+    runAsGroup: 9915    # Group ID for accessing NFS
+  containers:
+    - name: python-client
+      image: your-registry/milvus-client:latest  # Your custom image with pymilvus
+      command: ["/bin/bash", "-c"]
+      args:
+        - |
+          echo "Using pre-installed pymilvus from the Attu image"
+          # Make sure the script is accessible
+          chmod +x /sciclone/geograd/milvus-testing/milvus_posts_example.py
+          echo "Ready to run Milvus client script."
+          echo "To run the script: kubectl exec -it milvus-python-client -- python3 /sciclone/geograd/milvus-testing/milvus_posts_example.py"
+          echo "Sleeping... Press Ctrl+C to terminate."
+          sleep infinity
+      volumeMounts:
+        - name: sciclone-volume
+          mountPath: /sciclone  # Mount NFS base directory
+  volumes:
+    - name: sciclone-volume
+      nfs:
+        server: 128.239.59.144
+        path: /sciclone

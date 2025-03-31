@@ -9,7 +9,7 @@ def connect_to_milvus():
     print("Connecting to Milvus...")
     connections.connect(
         alias="default", 
-        host="milvus",  # Service name in Kubernetes
+        host="milvus-standalone",  # Pod name in Kubernetes
         port="19530"
     )
     print("Successfully connected to Milvus!")
