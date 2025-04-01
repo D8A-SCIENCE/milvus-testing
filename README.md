@@ -23,9 +23,9 @@ Instructions for getting a stand-alone Milvus pod running.  Replication is turne
 
 7) Run kubectl create -f milvusCoreServer.yml
 
-8) Run (from exampleUse folder) kubectl create -f python-client-pod.yml
+8) Update the python-client-pod.yml with your security context/NFS/etc.  This has a milvus python module for the test inserts and queries.
 
-9) Update the python-client-pod.yml with your security context/NFS/etc.  This has a milvus python module for the test inserts and queries.
+9) Run (from exampleUse folder) kubectl create -f python-client-pod.yml
 
 10) kubectl exec -it milvus-python-client -- /bin/bash
 
