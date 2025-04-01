@@ -36,6 +36,7 @@ Instructions for getting a stand-alone Milvus pod running.  Replication is turne
 13) python milvus_social_posts.py
 
 Output if everything is happy:
+```bash
 71032@milvus-python-client:/sciclone/geograd/milvus-testing/exampleUse$ python milvus_social_posts.py
 INFO:root:PyMilvus version: 2.2.11
 INFO:__main__:Successfully connected to Milvus at milvus-core.dsmillerrunfol.svc.cluster.local:19530
@@ -89,6 +90,6 @@ INFO:__main__:  - query_posts: 3.0715 seconds
 INFO:__main__:Total execution time: 6.7143 seconds
 INFO:__main__:============================
 INFO:__main__:Example completed successfully in 6.7145 seconds
-
+```
 
 
