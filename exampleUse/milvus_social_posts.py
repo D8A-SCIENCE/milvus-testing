@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import json
 import logging
+import functools
 
 # Import Milvus Python client library
 from pymilvus import (
@@ -21,6 +22,23 @@ try:
     logging.info(f"PyMilvus version: {pymilvus_version}")
 except ImportError:
     pymilvus_version = "Unknown"
+    
+# Dictionary to store timing metrics
+performance_metrics = {}
+
+# Timing decorator
+def timing_decorator(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        elapsed = end_time - start_time
+        func_name = func.__name__
+        performance_metrics[func_name] = elapsed
+        logger.info(f"⏱️ {func_name} completed in {elapsed:.4f} seconds")
+        return result
+    return wrapper
 
 # Configure logging
 logging.basicConfig(
@@ -49,6 +67,7 @@ POST_TOPICS = [
     "Looking forward to the weekend plans!",
 ]
 
+@timing_decorator
 def connect_to_milvus():
     """Connect to Milvus server and return connection status"""
     try:
@@ -64,6 +83,7 @@ def connect_to_milvus():
         logger.error(f"Failed to connect to Milvus: {e}")
         return False
 
+@timing_decorator
 def create_collection():
     """Create a collection for social media posts if it doesn't exist"""
     if utility.has_collection(COLLECTION_NAME):
@@ -99,6 +119,7 @@ def create_collection():
     
     return collection
 
+@timing_decorator
 def generate_post_embedding(text):
     """Generate a mock embedding vector for a post text"""
     # In a real application, you would use a text embedding model
@@ -106,6 +127,7 @@ def generate_post_embedding(text):
     random.seed(hash(text) % 10000)
     return [random.uniform(-1, 1) for _ in range(128)]
 
+@timing_decorator
 def create_sample_data(collection, num_posts=100):
     """Generate and insert sample social media post data"""
     posts_data = []
@@ -195,12 +217,16 @@ def create_sample_data(collection, num_posts=100):
     collection.flush()
     logger.info(f"Successfully created {num_posts} sample posts")
 
+@timing_decorator
 def query_posts(collection):
     """Demonstrate different query patterns on the posts collection"""
     # Ensure the collection is loaded for searching
     try:
+        start_time = time.time()
         collection.load()
-        logger.info("Collection loaded successfully")
+        load_time = time.time() - start_time
+        performance_metrics["collection_load"] = load_time
+        logger.info(f"⏱️ Collection loaded successfully in {load_time:.4f} seconds")
     except Exception as e:
         logger.error(f"Failed to load collection: {e}")
         return
@@ -299,8 +325,43 @@ def query_posts(collection):
     except Exception as e:
         logger.error(f"Error performing vector similarity search: {e}")
 
+def print_performance_summary():
+    """Print a summary of all performance metrics"""
+    logger.info("\n==== PERFORMANCE SUMMARY =====")
+    # Group metrics by operation type
+    connection_metrics = {k: v for k, v in performance_metrics.items() if k in ["connect_to_milvus"]}
+    schema_metrics = {k: v for k, v in performance_metrics.items() if k in ["create_collection"]}
+    data_metrics = {k: v for k, v in performance_metrics.items() if k in ["create_sample_data", "generate_post_embedding"]}
+    query_metrics = {k: v for k, v in performance_metrics.items() if k in ["query_posts", "collection_load"]}
+    
+    # Print metrics by group
+    logger.info("Connection Operations:")
+    for op, time_taken in connection_metrics.items():
+        logger.info(f"  - {op}: {time_taken:.4f} seconds")
+        
+    logger.info("Schema Operations:")
+    for op, time_taken in schema_metrics.items():
+        logger.info(f"  - {op}: {time_taken:.4f} seconds")
+        
+    logger.info("Data Operations:")
+    for op, time_taken in data_metrics.items():
+        if op != "generate_post_embedding":  # Skip individual embedding generations
+            logger.info(f"  - {op}: {time_taken:.4f} seconds")
+    
+    logger.info("Query Operations:")
+    for op, time_taken in query_metrics.items():
+        logger.info(f"  - {op}: {time_taken:.4f} seconds")
+    
+    # Calculate total time
+    main_ops = ["connect_to_milvus", "create_collection", "create_sample_data", "query_posts"]
+    total_time = sum(performance_metrics.get(op, 0) for op in main_ops)
+    logger.info(f"Total execution time: {total_time:.4f} seconds")
+    logger.info("============================")
+
 def main():
     """Main function to run the example"""
+    main_start_time = time.time()
+    
     # Connect to Milvus
     if not connect_to_milvus():
         return
@@ -314,7 +375,14 @@ def main():
     # Run query examples
     query_posts(collection)
     
-    logger.info("Example completed successfully")
+    # Calculate and store total execution time
+    main_execution_time = time.time() - main_start_time
+    performance_metrics["total_execution"] = main_execution_time
+    
+    # Print performance summary
+    print_performance_summary()
+    
+    logger.info(f"Example completed successfully in {main_execution_time:.4f} seconds")
 
 if __name__ == "__main__":
     main()
