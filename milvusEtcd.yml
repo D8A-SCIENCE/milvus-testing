@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: milvus-etcd
+  namespace: dsmillerrunfol
+  labels:
+    app: milvus-etcd
+spec:
+  restartPolicy: Always
+  securityContext:
+    runAsUser: 71032    # User ID for accessing NFS
+    runAsGroup: 9915    # Group ID for accessing NFS
+
+  containers:
+    - name: etcd
+      image: quay.io/coreos/etcd:v3.5.5
+      ports:
+        - containerPort: 2379
+          name: client
+      command: ["sh", "-c"]
+      args: ["
+        echo 'Creating and setting permissions on required directories...' && 
+        mkdir -p /sciclone/geograd/test/milvus/etcd && 
+        chmod -R 755 /sciclone/geograd/test/milvus/etcd && 
+        /usr/local/bin/etcd --data-dir=/sciclone/geograd/test/milvus/etcd --listen-client-urls=http://0.0.0.0:2379 --advertise-client-urls=http://0.0.0.0:2379 --max-txn-ops=10000 --max-request-bytes=33554432
+      "]
+      env:
+        - name: ETCD_AUTO_COMPACTION_MODE
+          value: "revision"
+        - name: ETCD_AUTO_COMPACTION_RETENTION
+          value: "1000"
+        - name: ETCD_QUOTA_BACKEND_BYTES
+          value: "4294967296" 
+      volumeMounts:
+        - name: sciclone-volume
+          mountPath: /sciclone
+      resources:
+        requests:
+          memory: "8Gi"
+          cpu: "2"
+        limits:
+          memory: "12Gi"
+          cpu: "4"
+  volumes:
+    - name: sciclone-volume
+      nfs:
+        server: 128.239.59.144
+        path: /sciclone
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: milvus-etcd
+  namespace: dsmillerrunfol
+spec:
+  ports:
+    - port: 2379
+      targetPort: 2379
+      name: etcd
+  selector:
+    app: milvus-etcd
+  type: ClusterIP

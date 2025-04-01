@@ -11,7 +11,7 @@ spec:
     runAsGroup: 9915    # Group ID for accessing NFS
   containers:
     - name: python-client
-      image: your-registry/milvus-client:latest  # Your custom image with pymilvus
+      image: ghcr.io/d8a-science/exmilvus:latest  # Your custom image with pymilvus
       command: ["/bin/bash", "-c"]
       args:
         - |

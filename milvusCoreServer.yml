@@ -1,0 +1,145 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: milvus-core
+  namespace: dsmillerrunfol
+  labels:
+    app: milvus-core
+spec:
+  restartPolicy: Always
+  securityContext:
+    runAsUser: 71032    # User ID for accessing NFS
+    runAsGroup: 9915    # Group ID for accessing NFS
+
+  containers:
+    - name: milvus
+      image: milvusdb/milvus:v2.3.5
+      ports:
+        - containerPort: 19530
+          name: milvus
+      command: ["sh", "-c"]
+      args: ["
+        echo 'Waiting for etcd and MinIO to start...' && 
+        sleep 10 && 
+        echo 'Creating and setting permissions on required directories...' && 
+        mkdir -p /sciclone/geograd/test/milvus/{data,logs,rocksmq,var/lib/milvus} && 
+        chmod -R 755 /sciclone/geograd/test/milvus && 
+        cd /milvus && 
+        echo 'Starting Milvus with optimized settings...' && 
+        export MALLOC_CONF=background_thread:true,metadata_thp:auto && 
+        export STANDALONE_PLAYGROUND_ENABLE=true && 
+        export MILVUS_QUERYNODE_NUM=1 && 
+        export MILVUS_QUERYNODE_CACHE_ENABLED=true && 
+        export MILVUS_QUERY_NODE_RESOURCE_ENABLED=true && 
+        echo 'Running standalone with enhanced query support...' && 
+        /milvus/bin/milvus run standalone
+      "]
+      resources:
+        requests:
+          memory: "48Gi"
+          cpu: "24"
+        limits:
+          memory: "64Gi"
+          cpu: "32"
+      env:
+        - name: DEPLOY_MODE
+          value: "standalone"
+        - name: ETCD_ENDPOINTS
+          value: "milvus-etcd.dsmillerrunfol.svc.cluster.local:2379"
+        - name: COMMON__QUERYCOORD__ENABLESIMPLETASKMANAGEMENT
+          value: "true"  # Enable simple task management for standalone mode
+        - name: COMMON__QUERYCOORD__AUTOFAILOVERTIMETICK
+          value: "6000"  # Increase timeout for query coordination
+        - name: QUERYCOORD__AUTOHANDOFF
+          value: "false"  # Disable query handoff that requires multiple nodes
+        - name: QUERYCOORD__ENABLEREPLICALOCATION
+          value: "false"  # Disable replica location which requires multiple nodes
+        - name: QUERYCOORD__CHECKHEALTHINTERVAL
+          value: "30"  # Longer health check interval
+        - name: MINIO_ADDRESS
+          value: "milvus-minio.dsmillerrunfol.svc.cluster.local:9000"
+        - name: MINIO_ACCESS_KEY
+          value: "minioadmin"
+        - name: MINIO_SECRET_KEY
+          value: "minioadmin"
+        - name: DATA_PATH
+          value: "/sciclone/geograd/test/milvus/data"
+        - name: MILVUS_DATANODE__FLUSH__INSERTBUFFERSIZE
+          value: "256" # Smaller buffer size for more frequent flushes
+        - name: MILVUS_LOG__LEVEL
+          value: "debug" # More verbose logging to troubleshoot
+        - name: MILVUS_COMMON__STORAGECONFIG__ALLOWWITHERRORSTOFLUSH
+          value: "true" # Continue even if some errors occur
+        - name: MILVUS_QUERYCOORD__LOAD__MINNODESNUMPERREPLICADEFAULT
+          value: "1"  # Set minimum nodes per replica to 1
+        - name: STANDALONE_PLAYGROUND_ENABLE
+          value: "true"  # Enable playground mode for standalone
+        - name: MILVUS_CLUSTER__ENABLE
+          value: "false"  # Explicitly disable cluster mode
+        - name: QUERY_NODE_ID
+          value: "1"  # Explicitly set query node ID for standalone mode
+        - name: MILVUS_PROXY__LOAD__MINNUMQUERYNODES
+          value: "1"  # Set minimum query nodes to 1
+        - name: COMMON__DEFAULT__GRACEFULTIME
+          value: "10000"  # Longer grace period for operations
+        - name: QUERYCOORD__ENABLEREPLICALOCATION
+          value: "false"  # Disable replica location enforcement
+        - name: QUERYCOORD__ENABLEREPLICAGRACEFULSTOP
+          value: "false"  # Disable graceful stop
+        - name: QUERYCOORD__FORCEUSEQUERYNODES
+          value: "true"  # Force use query nodes even if not enough
+        - name: QUERYCOORD__CHECKTOPOLOGY
+          value: "false"  # Disable topology checks
+        - name: QUERYCOORD__LOADBALANCEKICK
+          value: "0"      # Disable load balancing
+        - name: COMMON__RESOURCECFG__WAITINGPERIOD
+          value: "3"      # Shorter waiting period for resource allocation
+        - name: COMMON__RESOURCECFG__LOADTIMELIMIT
+          value: "240"    # Longer time limit for loading
+        - name: QUERYCOORD__FORCEUSEQUERYNODES
+          value: "true"  # Force use query nodes even if not enough
+        - name: ROCKSMQ_PATH
+          value: "/sciclone/geograd/test/milvus/rocksmq"
+        - name: LOG_PATH
+          value: "/sciclone/geograd/test/milvus/logs"
+        - name: ETCD_DATA_PATH
+          value: "/sciclone/geograd/test/milvus/etcd"
+        - name: MINIO_DATA_PATH
+          value: "/sciclone/geograd/test/milvus/minio"
+        - name: COMMON_STORAGE_TYPE
+          value: "local"
+      volumeMounts:
+        - name: sciclone-volume
+          mountPath: /sciclone
+        - name: sciclone-volume
+          mountPath: /var/lib/milvus
+          subPath: geograd/test/milvus/var/lib/milvus
+      resources:
+        requests:
+          memory: "24Gi"
+          cpu: "8"
+        limits:
+          memory: "32Gi"
+          cpu: "16"
+  volumes:
+    - name: sciclone-volume
+      nfs:
+        server: 128.239.59.144
+        path: /sciclone
+
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: milvus-core
+  namespace: dsmillerrunfol
+spec:
+  ports:
+    - port: 19530
+      targetPort: 19530
+      name: milvus-core
+  selector:
+    app: milvus-core
+  type: ClusterIP
