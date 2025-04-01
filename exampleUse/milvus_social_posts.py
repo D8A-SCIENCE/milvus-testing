@@ -119,7 +119,6 @@ def create_collection():
     
     return collection
 
-@timing_decorator
 def generate_post_embedding(text):
     """Generate a mock embedding vector for a post text"""
     # In a real application, you would use a text embedding model
@@ -331,7 +330,7 @@ def print_performance_summary():
     # Group metrics by operation type
     connection_metrics = {k: v for k, v in performance_metrics.items() if k in ["connect_to_milvus"]}
     schema_metrics = {k: v for k, v in performance_metrics.items() if k in ["create_collection"]}
-    data_metrics = {k: v for k, v in performance_metrics.items() if k in ["create_sample_data", "generate_post_embedding"]}
+    data_metrics = {k: v for k, v in performance_metrics.items() if k in ["create_sample_data"]}
     query_metrics = {k: v for k, v in performance_metrics.items() if k in ["query_posts", "collection_load"]}
     
     # Print metrics by group
@@ -345,8 +344,7 @@ def print_performance_summary():
         
     logger.info("Data Operations:")
     for op, time_taken in data_metrics.items():
-        if op != "generate_post_embedding":  # Skip individual embedding generations
-            logger.info(f"  - {op}: {time_taken:.4f} seconds")
+        logger.info(f"  - {op}: {time_taken:.4f} seconds")
     
     logger.info("Query Operations:")
     for op, time_taken in query_metrics.items():
