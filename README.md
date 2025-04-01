@@ -15,9 +15,9 @@ Instructions for getting a stand-alone Milvus pod running.  Replication is turne
    
    2d) /sciclone/geograd/test/milvus/minio
    
-4) Update the directories being used in milvusEtcd, milvusMinio, and milvusCoreServer (i.e., "/sciclone/geograd/test/milvus/etcd", "/sciclone/geograd/test/milvus/minio", etc.)
+4) Update the directories being used in milvusEtcd, milvusMinio, and milvusCoreServer.yml files (i.e., "/sciclone/geograd/test/milvus/etcd", "/sciclone/geograd/test/milvus/minio", etc.)
 
-5) Update the service resolution addresses to match your namespace (i.e., milvus-etcd.dsmillerrunfol.svc.cluster.local:2379, milvus-minio.dsmillerrunfol.svc.cluster.local:9000, milvus-core.dsmillerrunfol.svc.cluster.local:19530)
+5) Update the service resolution addresses to match your namespace in each of the three yml files (i.e., milvus-etcd.dsmillerrunfol.svc.cluster.local:2379, milvus-minio.dsmillerrunfol.svc.cluster.local:9000, milvus-core.dsmillerrunfol.svc.cluster.local:19530)
 
 6) Run kubectl create -f milvusEtcd.yml and kubectl create -f milvusMinio.yml
 
