@@ -27,7 +27,9 @@ Instructions for getting a stand-alone Milvus pod running.  Replication is turne
 
 10) CD to wherever milvus_social_posts.py is
 
-11) python milvus_social_posts.py
+11) Update the server DNS string in milvus_social_posts.py (it's pointing to a service in my namespace)
+
+12) python milvus_social_posts.py
 
 
 
